@@ -4,7 +4,7 @@ A single-page app to fill out the **2026 FIFA World Cup** bracket. The 12 groups
 sit on the left and right; drag teams into the Round of 32 and click winners to advance
 all the way to the Final.
 
-**Live site:** https://juanreyesv.github.io/world-cup/
+**Live site:** https://jreyesv.github.io/world-cup/
 
 ## Features
 
