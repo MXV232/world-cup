@@ -32,3 +32,7 @@ npm run build    # production build into dist/
 
 Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds the site and
 publishes `dist/` to GitHub Pages.
+
+#### My Prediction
+
+https://jreyesv.github.io/world-cup/#p=AQADAAMAAAAAAAAAAAMAAQACAQEDAwIDAQMCAAIEAwAAAgICAAEAAAAAAQAAAQEAAQAAAQAAAAAAAAABAQEBAAEAAAA
