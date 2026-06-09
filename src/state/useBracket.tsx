@@ -1,10 +1,14 @@
 import { createContext, useContext, useEffect, useReducer } from 'react';
 import type { Dispatch, ReactNode } from 'react';
 import { reducer, initialState, type BracketState, type Action } from './bracketReducer';
+import { decodeShareFromHash } from './shareCodec';
 
 const STORAGE_KEY = 'wc2026-bracket-v1';
 
 function load(): BracketState {
+  // A shared prediction in the URL hash takes precedence over saved progress.
+  const shared = decodeShareFromHash();
+  if (shared) return shared;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {

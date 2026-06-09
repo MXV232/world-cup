@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -10,6 +10,8 @@ import {
 } from '@dnd-kit/core';
 import { BracketProvider, useBracket } from './state/useBracket';
 import { DragContext } from './state/dragContext';
+import { buildShareUrl, hasShareInHash } from './state/shareCodec';
+import { champion } from './state/bracketReducer';
 import { GROUPS, teamById } from './data/groups';
 import { R32_SEEDS, seedAcceptsGroup } from './data/bracket';
 import { flagUrl } from './data/teams';
@@ -22,7 +24,21 @@ const LEFT_GROUPS = GROUPS.filter((g) => 'ABCDEF'.includes(g.id));
 const RIGHT_GROUPS = GROUPS.filter((g) => 'GHIJKL'.includes(g.id));
 
 function Header() {
-  const { dispatch } = useBracket();
+  const { state, dispatch } = useBracket();
+  const [copied, setCopied] = useState(false);
+  const crowned = champion(state);
+
+  async function share() {
+    const url = buildShareUrl(state);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt('Copy this link to share your prediction:', url);
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <header className="app-header">
       <div>
@@ -34,15 +50,42 @@ function Header() {
           to send it through to the Final.
         </p>
       </div>
-      <button
-        className="reset-btn"
-        onClick={() => {
-          if (window.confirm('Reset the entire bracket?')) dispatch({ type: 'RESET' });
-        }}
-      >
-        Reset
-      </button>
+      <div className="header-actions">
+        <button
+          className={`share-btn ${crowned ? 'ready' : ''}`}
+          onClick={share}
+          title="Copy a link that restores this exact prediction"
+        >
+          {copied ? '✓ Link copied' : 'Share prediction'}
+        </button>
+        <button
+          className="reset-btn"
+          onClick={() => {
+            if (window.confirm('Reset the entire bracket?')) dispatch({ type: 'RESET' });
+          }}
+        >
+          Reset
+        </button>
+      </div>
     </header>
+  );
+}
+
+function SharedBanner() {
+  const [visible, setVisible] = useState(() => hasShareInHash());
+  // Drop the payload from the address bar once it's been loaded into state.
+  useEffect(() => {
+    if (visible) {
+      window.history.replaceState(null, '', location.pathname + location.search);
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+  return (
+    <div className="shared-banner">
+      <span>👀 You’re viewing a shared prediction. Tweak any pick to make it your own.</span>
+      <button onClick={() => setVisible(false)}>Dismiss</button>
+    </div>
   );
 }
 
@@ -120,6 +163,7 @@ function Board() {
 export default function App() {
   return (
     <BracketProvider>
+      <SharedBanner />
       <Header />
       <Board />
     </BracketProvider>

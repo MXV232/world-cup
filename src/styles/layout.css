@@ -60,7 +60,15 @@ body {
   font-size: 13px;
 }
 
-.reset-btn {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.reset-btn,
+.share-btn {
   flex: none;
   background: transparent;
   color: var(--text);
@@ -69,12 +77,59 @@ body {
   padding: 8px 16px;
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .reset-btn:hover {
   background: var(--panel);
   border-color: var(--accent);
+}
+
+.share-btn {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+}
+
+.share-btn:hover {
+  background: rgba(33, 193, 122, 0.14);
+}
+
+/* nudge the user once a champion is crowned */
+.share-btn.ready {
+  background: var(--accent-2);
+  color: #042113;
+  font-weight: 700;
+}
+
+.share-btn.ready:hover {
+  background: #34d186;
+}
+
+/* ---------- shared-prediction banner ---------- */
+.shared-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 8px 16px;
+  font-size: 13px;
+  background: rgba(33, 193, 122, 0.14);
+  border-bottom: 1px solid var(--accent-2);
+}
+
+.shared-banner button {
+  background: transparent;
+  border: 1px solid var(--accent-2);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.shared-banner button:hover {
+  background: rgba(33, 193, 122, 0.2);
 }
 
 /* ---------- best thirds bar ---------- */
