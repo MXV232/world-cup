@@ -86,22 +86,22 @@ const T = (...groups: string[]): Seed => ({ kind: 'third', groups });
 // eight form the left half of the bracket, the last eight the right half, so
 // the downstream R16/QF/SF wiring matches the real tournament.
 const R32_ORDER: [Seed, Seed][] = [
-  [RU('A'), RU('B')], //               73
   [W('E'), T('A', 'B', 'C', 'D', 'F')], //  74
-  [W('F'), RU('C')], //                75
-  [W('C'), RU('F')], //                76
   [W('I'), T('C', 'D', 'F', 'G', 'H')], //  77
+  [RU('A'), RU('B')], //               73
+  [W('F'), RU('C')], //                75
+  [RU('K'), RU('L')], //               83
+  [W('H'), RU('J')], //                84
+  [W('D'), T('B', 'E', 'F', 'I', 'J')], //  81
+  [W('G'), T('A', 'E', 'H', 'I', 'J')], //  82
+  [W('C'), RU('F')], //                76
   [RU('E'), RU('I')], //               78
   [W('A'), T('C', 'E', 'F', 'H', 'I')], //  79
   [W('L'), T('E', 'H', 'I', 'J', 'K')], //  80
-  [W('D'), T('B', 'E', 'F', 'I', 'J')], //  81
-  [W('G'), T('A', 'E', 'H', 'I', 'J')], //  82
-  [RU('K'), RU('L')], //               83
-  [W('H'), RU('J')], //                84
-  [W('B'), T('E', 'F', 'G', 'I', 'J')], //  85
   [W('J'), RU('H')], //                86
-  [W('K'), T('D', 'E', 'I', 'J', 'L')], //  87
   [RU('D'), RU('G')], //               88
+  [W('B'), T('E', 'F', 'G', 'I', 'J')], //  85
+  [W('K'), T('D', 'E', 'I', 'J', 'L')], //  87
 ];
 
 const R32_MATCH_IDS = [
