@@ -15,6 +15,7 @@ function load(): BracketState {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.r32 && parsed.winners) {
         if (!Array.isArray(parsed.thirds)) parsed.thirds = [];
+        if (!parsed.groupScores || typeof parsed.groupScores !== 'object') parsed.groupScores = {};
         return parsed as BracketState;
       }
     }

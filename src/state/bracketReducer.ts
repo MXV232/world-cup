@@ -3,6 +3,9 @@ import { THIRD_ALLOCATION, THIRD_COLUMN_MATCH } from '../data/thirdAllocation';
 import { teamById } from '../data/groups';
 import type { Team } from '../data/teams';
 
+/** groupId-ij (e.g. "A-01") -> [homeScore | null, awayScore | null] */
+export type GroupScores = Record<string, [number | null, number | null]>;
+
 export interface BracketState {
   /** R32 matchId -> [teamId | null, teamId | null]; only winner/runner slots are used here */
   r32: Record<string, [string | null, string | null]>;
@@ -10,6 +13,8 @@ export interface BracketState {
   thirds: string[];
   /** any matchId -> winning slot index (or null) */
   winners: Record<string, 0 | 1 | null>;
+  /** group stage match scores, keyed by "A-01" (group A, team[0] vs team[1]) */
+  groupScores: GroupScores;
 }
 
 export type Action =
@@ -18,6 +23,7 @@ export type Action =
   | { type: 'ADD_THIRD'; teamId: string }
   | { type: 'REMOVE_THIRD'; teamId: string }
   | { type: 'PICK'; matchId: string; slot: 0 | 1 }
+  | { type: 'SET_GROUP_SCORE'; matchKey: string; scores: [number | null, number | null] }
   | { type: 'RESET' };
 
 /** The 8 R32 matches whose slot 1 is filled by a qualifying third-placed team. */
@@ -30,7 +36,7 @@ export function initialState(): BracketState {
     winners[m.id] = null;
     if (m.round === 'R32') r32[m.id] = [null, null];
   }
-  return { r32, thirds: [], winners };
+  return { r32, thirds: [], winners, groupScores: {} };
 }
 
 /** Clear winners of every match downstream of `matchId` (the matchup there changed). */
@@ -131,6 +137,9 @@ export function reducer(state: BracketState, action: Action): BracketState {
       clearDownstream(winners, action.matchId);
       return { ...state, winners };
     }
+
+    case 'SET_GROUP_SCORE':
+      return { ...state, groupScores: { ...state.groupScores, [action.matchKey]: action.scores } };
 
     default:
       return state;
