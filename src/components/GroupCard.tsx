@@ -6,44 +6,6 @@ import { flagUrl } from '../data/teams';
 import { useBracket } from '../state/useBracket';
 import { placedTeamIds, type GroupScores } from '../state/bracketReducer';
 
-function TeamRow({
-  teamId,
-  name,
-  code,
-  placed,
-}: {
-  teamId: string;
-  name: string;
-  code: string;
-  placed: boolean;
-}) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `team:${teamId}`,
-    data: { teamId },
-    disabled: placed,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`team-row ${placed ? 'placed' : ''} ${isDragging ? 'dragging' : ''}`}
-      {...(placed ? {} : listeners)}
-      {...attributes}
-    >
-      <img
-        className="flag"
-        src={flagUrl(code)}
-        alt=""
-        onError={(e) => {
-          e.currentTarget.style.visibility = 'hidden';
-        }}
-      />
-      <span className="team-name">{name}</span>
-      {placed && <span className="placed-check">✓</span>}
-    </div>
-  );
-}
-
 // All 6 pair indices for 4 teams: (0,1),(0,2),(0,3),(1,2),(1,3),(2,3)
 const PAIRS: [number, number][] = [];
 for (let i = 0; i < 4; i++)
@@ -89,10 +51,52 @@ function computeStandings(group: Group, groupScores: GroupScores): Standing[] {
   );
 }
 
-function MatchesSection({ group }: { group: Group }) {
+function TeamRow({
+  teamId,
+  name,
+  code,
+  placed,
+  pts,
+  played,
+}: {
+  teamId: string;
+  name: string;
+  code: string;
+  placed: boolean;
+  pts: number;
+  played: number;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `team:${teamId}`,
+    data: { teamId },
+    disabled: placed,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`team-row ${placed ? 'placed' : ''} ${isDragging ? 'dragging' : ''}`}
+      {...(placed ? {} : listeners)}
+      {...attributes}
+    >
+      <img
+        className="flag"
+        src={flagUrl(code)}
+        alt=""
+        onError={(e) => {
+          e.currentTarget.style.visibility = 'hidden';
+        }}
+      />
+      <span className="team-name">{name}</span>
+      {placed && <span className="placed-check">✓</span>}
+      {played > 0 && <span className="team-pts">{pts}</span>}
+    </div>
+  );
+}
+
+function MatchesSection({ group, standings }: { group: Group; standings: Standing[] }) {
   const { state, dispatch } = useBracket();
   const teams = group.teams;
-  const standings = computeStandings(group, state.groupScores);
   const hasAnyScore = standings.some((s) => s.played > 0);
 
   function handleScore(key: string, slot: 0 | 1, raw: string) {
@@ -164,6 +168,9 @@ export default function GroupCard({ group }: { group: Group }) {
   const placed = placedTeamIds(state);
   const [showMatches, setShowMatches] = useState(false);
 
+  const standings = computeStandings(group, state.groupScores);
+  const ptsByTeam = new Map(standings.map((s) => [s.team.id, s]));
+
   return (
     <div className="group-card">
       <div className="group-title">
@@ -172,10 +179,21 @@ export default function GroupCard({ group }: { group: Group }) {
           {showMatches ? 'hide' : 'scores'}
         </button>
       </div>
-      {group.teams.map((t) => (
-        <TeamRow key={t.id} teamId={t.id} name={t.name} code={t.code} placed={placed.has(t.id)} />
-      ))}
-      {showMatches && <MatchesSection group={group} />}
+      {group.teams.map((t) => {
+        const s = ptsByTeam.get(t.id);
+        return (
+          <TeamRow
+            key={t.id}
+            teamId={t.id}
+            name={t.name}
+            code={t.code}
+            placed={placed.has(t.id)}
+            pts={s?.pts ?? 0}
+            played={s?.played ?? 0}
+          />
+        );
+      })}
+      {showMatches && <MatchesSection group={group} standings={standings} />}
     </div>
   );
 }
