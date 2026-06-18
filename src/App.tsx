@@ -11,7 +11,7 @@ import {
 import { BracketProvider, useBracket } from './state/useBracket';
 import { DragContext } from './state/dragContext';
 import { buildShareUrl, hasShareInHash } from './state/shareCodec';
-import { champion } from './state/bracketReducer';
+import { champion, computeFillFromStandings } from './state/bracketReducer';
 import { GROUPS, teamById } from './data/groups';
 import { R32_SEEDS, seedAcceptsGroup } from './data/bracket';
 import { flagUrl } from './data/teams';
@@ -51,6 +51,30 @@ function Header() {
         </p>
       </div>
       <div className="header-actions">
+        <button
+          className="autofill-btn"
+          onClick={() => {
+            const { placements, thirds } = computeFillFromStandings(state.groupScores);
+            if (placements.length === 0) {
+              window.alert('No match scores entered yet. Enter some results first.');
+              return;
+            }
+            dispatch({ type: 'FILL_FROM_STANDINGS', placements, thirds });
+          }}
+          title="Fill the Round of 32 based on current group standings"
+        >
+          Auto-fill R32
+        </button>
+        <button
+          className="reset-btn"
+          onClick={() => {
+            if (window.confirm('Clear the bracket picks? Your group scores will be kept.'))
+              dispatch({ type: 'CLEAR_BRACKET' });
+          }}
+          title="Clear all bracket picks but keep entered scores"
+        >
+          Clear R32
+        </button>
         <button
           className={`share-btn ${crowned ? 'ready' : ''}`}
           onClick={share}

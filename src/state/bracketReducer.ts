@@ -1,7 +1,48 @@
 import { MATCH_BY_ID, FEEDERS, R32_SEEDS } from '../data/bracket';
 import { THIRD_ALLOCATION, THIRD_COLUMN_MATCH } from '../data/thirdAllocation';
-import { teamById } from '../data/groups';
+import { GROUPS, teamById } from '../data/groups';
+import type { Group } from '../data/groups';
 import type { Team } from '../data/teams';
+
+// All 6 pair indices for a 4-team group: (0,1),(0,2),(0,3),(1,2),(1,3),(2,3)
+export const GROUP_PAIRS: [number, number][] = [];
+for (let i = 0; i < 4; i++)
+  for (let j = i + 1; j < 4; j++)
+    GROUP_PAIRS.push([i, j]);
+
+export interface Standing {
+  team: Team;
+  pts: number;
+  w: number;
+  d: number;
+  l: number;
+  gf: number;
+  ga: number;
+  gd: number;
+  played: number;
+}
+
+export function computeGroupStandings(group: Group, groupScores: GroupScores): Standing[] {
+  const stats = new Map<string, Standing>(
+    group.teams.map((t) => [t.id, { team: t, pts: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, played: 0 }]),
+  );
+  for (const [i, j] of GROUP_PAIRS) {
+    const key = `${group.id}-${i}${j}`;
+    const scores = groupScores[key];
+    if (!scores || scores[0] === null || scores[1] === null) continue;
+    const [hg, ag] = scores as [number, number];
+    const home = stats.get(group.teams[i].id)!;
+    const away = stats.get(group.teams[j].id)!;
+    home.gf += hg; home.ga += ag; home.gd += hg - ag; home.played++;
+    away.gf += ag; away.ga += hg; away.gd += ag - hg; away.played++;
+    if (hg > ag) { home.w++; home.pts += 3; away.l++; }
+    else if (hg < ag) { away.w++; away.pts += 3; home.l++; }
+    else { home.d++; home.pts++; away.d++; away.pts++; }
+  }
+  return [...stats.values()].sort(
+    (a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.team.id.localeCompare(b.team.id),
+  );
+}
 
 /** groupId-ij (e.g. "A-01") -> [homeScore | null, awayScore | null] */
 export type GroupScores = Record<string, [number | null, number | null]>;
@@ -24,6 +65,8 @@ export type Action =
   | { type: 'REMOVE_THIRD'; teamId: string }
   | { type: 'PICK'; matchId: string; slot: 0 | 1 }
   | { type: 'SET_GROUP_SCORE'; matchKey: string; scores: [number | null, number | null] }
+  | { type: 'FILL_FROM_STANDINGS'; placements: { matchId: string; slot: 0 | 1; teamId: string }[]; thirds: string[] }
+  | { type: 'CLEAR_BRACKET' }
   | { type: 'RESET' };
 
 /** The 8 R32 matches whose slot 1 is filled by a qualifying third-placed team. */
@@ -76,6 +119,16 @@ export function reducer(state: BracketState, action: Action): BracketState {
   switch (action.type) {
     case 'RESET':
       return initialState();
+
+    case 'CLEAR_BRACKET': {
+      const r32: BracketState['r32'] = {};
+      const winners: BracketState['winners'] = {};
+      for (const m of Object.values(MATCH_BY_ID)) {
+        winners[m.id] = null;
+        if (m.round === 'R32') r32[m.id] = [null, null];
+      }
+      return { ...state, r32, thirds: [], winners };
+    }
 
     case 'PLACE': {
       // Winner/runner slots only (third slots are filled via the thirds tray).
@@ -140,6 +193,21 @@ export function reducer(state: BracketState, action: Action): BracketState {
 
     case 'SET_GROUP_SCORE':
       return { ...state, groupScores: { ...state.groupScores, [action.matchKey]: action.scores } };
+
+    case 'FILL_FROM_STANDINGS': {
+      const r32: BracketState['r32'] = {};
+      const winners: BracketState['winners'] = {};
+      for (const m of Object.values(MATCH_BY_ID)) {
+        winners[m.id] = null;
+        if (m.round === 'R32') r32[m.id] = [null, null];
+      }
+      for (const { matchId, slot, teamId } of action.placements) {
+        const pair: [string | null, string | null] = [...(r32[matchId] ?? [null, null])];
+        pair[slot] = teamId;
+        r32[matchId] = pair;
+      }
+      return { ...state, r32, thirds: action.thirds, winners };
+    }
 
     default:
       return state;
@@ -223,4 +291,49 @@ export function thirdGroups(state: BracketState): Set<string> {
 
 export function champion(state: BracketState): Team | null {
   return effectiveWinner(state, 'FINAL');
+}
+
+/**
+ * Derive R32 placements and a best-8 thirds list from the current group scores.
+ * Only fills slots for teams that have actually played at least one match.
+ */
+export function computeFillFromStandings(groupScores: GroupScores): {
+  placements: { matchId: string; slot: 0 | 1; teamId: string }[];
+  thirds: string[];
+} {
+  // Build reverse map: group -> { matchId, slot } for winner and runner seeds
+  const winnerFor: Record<string, { matchId: string; slot: 0 | 1 }> = {};
+  const runnerFor: Record<string, { matchId: string; slot: 0 | 1 }> = {};
+  for (const [matchId, seeds] of Object.entries(R32_SEEDS)) {
+    for (const slot of [0, 1] as const) {
+      const seed = seeds[slot];
+      if (seed.kind === 'winner') winnerFor[seed.group] = { matchId, slot };
+      if (seed.kind === 'runner') runnerFor[seed.group] = { matchId, slot };
+    }
+  }
+
+  const placements: { matchId: string; slot: 0 | 1; teamId: string }[] = [];
+  const thirdCandidates: { teamId: string; pts: number; gd: number; gf: number }[] = [];
+
+  for (const group of GROUPS) {
+    const standings = computeGroupStandings(group, groupScores);
+    const [first, second, third] = standings;
+
+    if (first.played > 0) {
+      const ws = winnerFor[group.id];
+      if (ws) placements.push({ matchId: ws.matchId, slot: ws.slot, teamId: first.team.id });
+    }
+    if (second && second.played > 0) {
+      const rs = runnerFor[group.id];
+      if (rs) placements.push({ matchId: rs.matchId, slot: rs.slot, teamId: second.team.id });
+    }
+    if (third && third.played > 0) {
+      thirdCandidates.push({ teamId: third.team.id, pts: third.pts, gd: third.gd, gf: third.gf });
+    }
+  }
+
+  thirdCandidates.sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+  const thirds = thirdCandidates.slice(0, 8).map((t) => t.teamId);
+
+  return { placements, thirds };
 }

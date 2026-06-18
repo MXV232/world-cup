@@ -1,55 +1,9 @@
 import { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { Group } from '../data/groups';
-import type { Team } from '../data/teams';
 import { flagUrl } from '../data/teams';
 import { useBracket } from '../state/useBracket';
-import { placedTeamIds, type GroupScores } from '../state/bracketReducer';
-
-// All 6 pair indices for 4 teams: (0,1),(0,2),(0,3),(1,2),(1,3),(2,3)
-const PAIRS: [number, number][] = [];
-for (let i = 0; i < 4; i++)
-  for (let j = i + 1; j < 4; j++)
-    PAIRS.push([i, j]);
-
-interface Standing {
-  team: Team;
-  pts: number;
-  w: number;
-  d: number;
-  l: number;
-  gf: number;
-  ga: number;
-  gd: number;
-  played: number;
-}
-
-function computeStandings(group: Group, groupScores: GroupScores): Standing[] {
-  const stats = new Map<string, Standing>(
-    group.teams.map((t) => [t.id, { team: t, pts: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, played: 0 }]),
-  );
-
-  for (const [i, j] of PAIRS) {
-    const key = `${group.id}-${i}${j}`;
-    const scores = groupScores[key];
-    if (!scores || scores[0] === null || scores[1] === null) continue;
-
-    const [hg, ag] = scores as [number, number];
-    const home = stats.get(group.teams[i].id)!;
-    const away = stats.get(group.teams[j].id)!;
-
-    home.gf += hg; home.ga += ag; home.gd += hg - ag; home.played++;
-    away.gf += ag; away.ga += hg; away.gd += ag - hg; away.played++;
-
-    if (hg > ag) { home.w++; home.pts += 3; away.l++; }
-    else if (hg < ag) { away.w++; away.pts += 3; home.l++; }
-    else { home.d++; home.pts++; away.d++; away.pts++; }
-  }
-
-  return [...stats.values()].sort(
-    (a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.team.id.localeCompare(b.team.id),
-  );
-}
+import { placedTeamIds, computeGroupStandings, GROUP_PAIRS, type Standing } from '../state/bracketReducer';
 
 function TeamRow({
   teamId,
@@ -131,7 +85,7 @@ function MatchesSection({ group, standings }: { group: Group; standings: Standin
       )}
 
       <div className="matches-list">
-        {PAIRS.map(([i, j]) => {
+        {GROUP_PAIRS.map(([i, j]) => {
           const key = `${group.id}-${i}${j}`;
           const scores = state.groupScores[key] ?? [null, null];
           return (
@@ -168,7 +122,7 @@ export default function GroupCard({ group }: { group: Group }) {
   const placed = placedTeamIds(state);
   const [showMatches, setShowMatches] = useState(false);
 
-  const standings = computeStandings(group, state.groupScores);
+  const standings = computeGroupStandings(group, state.groupScores);
   const ptsByTeam = new Map(standings.map((s) => [s.team.id, s]));
 
   return (

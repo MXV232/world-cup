@@ -68,7 +68,8 @@ body {
 }
 
 .reset-btn,
-.share-btn {
+.share-btn,
+.autofill-btn {
   flex: none;
   background: transparent;
   color: var(--text);
@@ -81,9 +82,15 @@ body {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.reset-btn:hover {
+.reset-btn:hover,
+.autofill-btn:hover {
   background: var(--panel);
   border-color: var(--accent);
+}
+
+.autofill-btn {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .share-btn {
