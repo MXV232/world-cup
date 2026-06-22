@@ -10,7 +10,7 @@
 
 /** R32 match (slot 1) that hosts each winner column, in order [1A,1B,1D,1E,1G,1I,1K,1L]. */
 export const THIRD_COLUMN_MATCH: readonly string[] = [
-  'L-R32-6', 'R-R32-4', 'R-R32-0', 'L-R32-1', 'R-R32-1', 'L-R32-4', 'R-R32-6', 'L-R32-7',
+  'R-R32-2', 'R-R32-6', 'L-R32-6', 'L-R32-0', 'L-R32-7', 'L-R32-1', 'R-R32-7', 'R-R32-3',
 ];
 
 export const THIRD_ALLOCATION: Record<string, string> = {

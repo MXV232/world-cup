@@ -147,7 +147,7 @@ export function reducer(state: BracketState, action: Action): BracketState {
       r32[action.matchId] = target;
       winners[action.matchId] = null;
       clearDownstream(winners, action.matchId);
-      return { r32, thirds, winners };
+      return { ...state, r32, thirds, winners };
     }
 
     case 'CLEAR_SLOT': {
@@ -174,7 +174,7 @@ export function reducer(state: BracketState, action: Action): BracketState {
       removeFromSlots(r32, winners, action.teamId); // was it a winner/runner? move it
       const thirds = [...state.thirds, action.teamId];
       clearThirdMatches(winners);
-      return { r32, thirds, winners };
+      return { ...state, r32, thirds, winners };
     }
 
     case 'REMOVE_THIRD': {
